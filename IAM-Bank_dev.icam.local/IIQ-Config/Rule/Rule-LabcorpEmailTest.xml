@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="LabCorp-Email-Test" type="IdentityAttribute">
+          
+    
+    <Description>Identity attribute rules are used when the value is not simply a copy of an application account attribute value.  A transformation may be necessary on the account attribute, or several account attributes may need to be combined to produce the identity attribute.
+
+This rule can be called in two ways: as a global mapping rule and an application mapping rule.  A global mapping rule is called whenever the identity is refreshed.  The rule can look at any account attributes.  An application mapping rule is called only when the identity contains an account link for that application, this link is passed in the "link" argument which is not passed in global mapping rules.</Description>
+          
+    
+    <Signature returnType="String"/>
+          
+    
+    <Source><![CDATA[
+    import sailpoint.object.EmailTemplate;
+	import sailpoint.object.EmailFileAttachment;
+	import sailpoint.object.EmailOptions;
+	
+	import org.apache.log4j.Logger;
+	import org.apache.log4j.Level;
+	
+	Logger log = Logger.getLogger("sailpoint.services.bshdemo.testEmailSending");
+	// TODO: Remove this forced log level set before checking in this Rule.
+	log.setLevel(Level.DEBUG);
+	
+	// When testing in the field, point this to the email address to send to.
+	String emailDest = "spadmin@example.com";
+	
+	// Specify an email template name for which email to send.
+	String tplName = "Labcorp Solicitacao Aberta";
+	
+	EmailTemplate template = context.getObjectByName(EmailTemplate.class, tplName);
+	if (null == template) {
+	   log.error("ERROR: could not find email template [ " + tplName + "]");
+	   return;
+	}
+	
+	// We must perform a deep-copy of the email template in memory when sending.
+	// The deep copy call here prevents the email template from being persisted
+	// back into the relational database with the 'to:' and 'cc:' fields
+	// overwritten.
+	template = (EmailTemplate) template.deepCopy(context);
+	if (null == template) {
+	   log.error("ERROR: failed to deepCopy template [ " + tplName + "]");
+	   return;
+	}
+	
+	// Email Templates are actually Apache Velocity templates that process arguments.
+	// We can build our own map of arguments to pass to the email template here.
+	Map velocityArgs = new HashMap();
+	velocityArgs.put("testField1", "This is a test.  This is a test of an argument.");
+	
+	try {
+	   EmailOptions ops = new EmailOptions(emailDest, velocityArgs);
+	   context.sendEmailNotification(template, ops);
+	   log.debug("Test email sent to " + emailDest + " from template " + tplName);
+	} catch (Exception ex) {
+	   log.error("Failed to send email.", ex);
+	   return "Error";
+	}
+	
+	return "Success";
+    ]]></Source>
+        
+
+</Rule>
